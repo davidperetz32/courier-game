@@ -70,7 +70,11 @@ export function createCourier() {
   }
 
   // ---------- loading ----------
-  const ready = new GLTFLoader().loadAsync(MODEL_URL).then((gltf) => {
+  // If the model never arrives (a stuck download or decode on a phone), give up after 12 s and show the placeholder.
+  const ready = Promise.race([
+    new GLTFLoader().loadAsync(MODEL_URL),
+    new Promise((_, reject) => setTimeout(() => reject(new Error('model load timed out')), 12000))
+  ]).then((gltf) => {
     model = gltf.scene;
     model.rotation.y = Math.PI;                    // the model looks along +z, the game runs towards -z
     model.scale.setScalar(SCALE);

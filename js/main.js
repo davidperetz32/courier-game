@@ -25,6 +25,8 @@ const world = createWorld(gfx, crowd);
 const ents = createEntities(gfx, crowd);
 const fx = createFx(gfx);
 const courier = createCourier();
+window.__cs = 'loading';                              // which courier is shown: loading | model | placeholder (visible with ?fps=1)
+courier.ready.then((s) => { window.__cs = s; });
 scene.add(courier.root);
 
 let baseFov = 70;
@@ -305,7 +307,7 @@ function frame(ts) {
     fpsN++; fpsT += dt;
     if (fpsT >= 0.5) {
       let q = '?'; try { q = localStorage.getItem('runner-quality-v2') ?? 'auto'; } catch (e) { /* ignore */ }
-      fpsEl.textContent = Math.round(fpsN / fpsT) + ' fps · q' + q;
+      fpsEl.textContent = Math.round(fpsN / fpsT) + ' fps · q' + q + ' · ' + window.__cs;
       fpsN = 0; fpsT = 0;
     }
   }
