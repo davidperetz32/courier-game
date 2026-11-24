@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>איפוס</title>
+<style>
+  body { font-family: -apple-system, system-ui, sans-serif; background: #b8a688; color: #0f2a4a; padding: 28px; line-height: 1.6; }
+  .card { background: #fff; border-radius: 20px; padding: 22px; max-width: 420px; margin: 40px auto; }
+  h1 { font-size: 24px; margin: 0 0 12px; color: #c2410c; }
+  pre { direction: ltr; text-align: left; white-space: pre-wrap; font-size: 12px; background: #f1f5f9; padding: 10px; border-radius: 10px; }
+  a { display: inline-block; margin-top: 14px; font-size: 20px; font-weight: 800; color: #fff; background: #f97316; padding: 12px 34px; border-radius: 999px; text-decoration: none; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>מנקה עותקים ישנים</h1>
+  <div id="out">רגע...</div>
+  <pre id="log"></pre>
+  <a id="go" href="./" style="display:none">חזרה למשחק</a>
+</div>
+<script>
+(async function () {
+  var log = document.getElementById('log'), out = document.getElementById('out');
+  function say(s) { log.textContent += s + '\n'; }
+  var files = ['./', 'index.html', 'manifest.webmanifest', 'vendor/three.module.min.js', 'vendor/postprocessing.min.js', 'vendor/GLTFLoader.js', 'vendor/BufferGeometryUtils.js', 'vendor/SkeletonUtils.js',
+    'js/main.js', 'js/config.js', 'js/patterns.js', 'js/courier.js', 'js/courier-placeholder.js', 'js/input.js', 'assets/courier.glb', 'assets/crowd/crowd-anim.glb', 'assets/crowd/person-k1.glb', 'assets/crowd/person-m1.glb', 'assets/crowd/person-m2.glb', 'assets/crowd/person-o1.glb', 'assets/crowd/person-w1.glb', 'assets/crowd/person-w2.glb',
+    'js/v2/gfx.js', 'js/v2/geo.js', 'js/v2/mat.js', 'js/v2/models.js', 'js/v2/models2.js', 'js/v2/world.js', 'js/v2/entities.js', 'js/v2/crowd.js', 'js/v2/fx.js'];
+  try {
+    if (navigator.serviceWorker) {
+      var rs = await navigator.serviceWorker.getRegistrations();
+      for (var r of rs) await r.unregister();
+      say('service workers removed: ' + rs.length);
+    }
+  } catch (e) { say('sw: ' + e); }
+  try {
+    if (window.caches) {
+      var ks = await caches.keys();
+      for (var k of ks) await caches.delete(k);
+      say('caches removed: ' + ks.length);
+    }
+  } catch (e) { say('caches: ' + e); }
+  try { sessionStorage.clear(); localStorage.removeItem('runner-quality-v2'); localStorage.removeItem('runner-quality-v3'); } catch (e) { /* ignore */ }
+  var bad = 0;
+  for (var f of files) {
+    try { var res = await fetch(f, { cache: 'reload' }); if (!res.ok) { bad++; say('FAIL ' + f + ' ' + res.status); } }
+    catch (e) { bad++; say('FAIL ' + f + ' ' + e); }
+  }
+  try {
+    var t = await (await fetch('js/v2/mat.js', { cache: 'no-store' })).text();
+    say('mat.js has loadImages: ' + /export function loadImages/.test(t));
+  } catch (e) { say('check: ' + e); }
+  out.textContent = bad ? 'סיימתי, אבל חלק מהקבצים לא נטענו (ראה למטה).' : 'סיימתי. הכל נקי.';
+  document.getElementById('go').style.display = 'inline-block';
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,18 @@
+{
+  "name": "שליח החנקן",
+  "short_name": "שליח החנקן",
+  "description": "משחק ריצה בשדה תעופה עם מכל חנקן נוזלי",
+  "lang": "he",
+  "dir": "rtl",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f5e4c3",
+  "theme_color": "#f5e4c3",
+  "icons": [
+    { "src": "icons/icon-180.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}

@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>שליח החנקן</title>
+<meta name="theme-color" content="#f5e4c3">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="שליח החנקן">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="modulepreload" href="vendor/three.module.min.js">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none; user-select: none; }
+  html, body {
+    position: fixed; inset: 0; width: 100%; height: 100%;
+    overflow: hidden; overscroll-behavior: none; touch-action: none;
+    background: #f5e4c3;
+    font-family: -apple-system, system-ui, "Arial Hebrew", "Segoe UI", Arial, sans-serif;
+  }
+  #stage { position: absolute; inset: 0; overflow: hidden; }
+  canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+
+  #hud {
+    position: absolute; top: 0; left: 0; right: 0; pointer-events: none;
+    padding: calc(env(safe-area-inset-top, 0px) + 10px) calc(env(safe-area-inset-right, 0px) + 14px) 0 calc(env(safe-area-inset-left, 0px) + 14px);
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  #hud.hidden { display: none; }
+  .hud-row { display: flex; justify-content: space-between; align-items: center; }
+  .pill {
+    background: rgba(15, 42, 74, 0.72); color: #fff; font-weight: 800; font-size: 19px;
+    border-radius: 999px; padding: 6px 14px; min-width: 76px; text-align: center;
+    display: flex; align-items: center; justify-content: center; gap: 7px;
+  }
+  .coin-dot { width: 15px; height: 15px; border-radius: 50%; background: #ffc928; box-shadow: inset 0 0 0 2px #d99a00; }
+  #gauge { display: flex; align-items: center; gap: 8px; background: rgba(15, 42, 74, 0.72); border-radius: 999px; padding: 6px 12px; }
+  #gauge .label { color: #fff; font-size: 14px; font-weight: 800; }
+  #gauge .track { flex: 1; height: 12px; border-radius: 999px; background: rgba(255, 255, 255, 0.22); overflow: hidden; }
+  #gauge-fill { width: 100%; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #a5f3fc, #22d3ee); transform-origin: right center; will-change: transform; }
+  #gauge.low #gauge-fill { background: #ef4444; }
+  #gauge.low { animation: pulse 0.5s infinite alternate; }
+  @keyframes pulse { from { background: rgba(15, 42, 74, 0.72); } to { background: rgba(153, 27, 27, 0.85); } }
+
+  #toast {
+    position: absolute; top: calc(env(safe-area-inset-top, 0px) + 112px); left: 50%;
+    transform: translate(-50%, -8px); opacity: 0; pointer-events: none; white-space: nowrap;
+    background: rgba(255, 255, 255, 0.92); color: #0f2a4a; font-weight: 800; font-size: 20px;
+    padding: 8px 20px; border-radius: 999px; transition: opacity 0.25s, transform 0.25s;
+  }
+  #toast.show { opacity: 1; transform: translate(-50%, 0); }
+  #toast.fill { background: #22d3ee; color: #083344; }
+
+  .overlay {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; text-align: center; gap: 14px;
+    padding: calc(env(safe-area-inset-top, 0px) + 24px) 28px calc(env(safe-area-inset-bottom, 0px) + 24px);
+    background: rgba(40, 24, 8, 0.3);
+    color: #fff;
+  }
+  .overlay.hidden { display: none; }
+  .card {
+    width: 100%; max-width: 320px; background: #ffffff; color: #0f2a4a;
+    border-radius: 24px; padding: 26px 22px 22px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3);
+    display: flex; flex-direction: column; align-items: center; gap: 12px;
+  }
+  h1 { font-size: 34px; line-height: 1.1; font-weight: 800; color: #c2410c; }
+  h2 { font-size: 28px; line-height: 1.15; font-weight: 800; color: #c2410c; }
+  p { font-size: 17px; line-height: 1.4; }
+  .hint { font-size: 14.5px; color: #475569; line-height: 1.55; }
+  .big { font-size: 44px; font-weight: 800; color: #0f2a4a; line-height: 1; }
+  .best { font-size: 16px; color: #475569; font-weight: 600; }
+  .coins { font-size: 18px; font-weight: 800; color: #b45309; }
+  .record { font-size: 17px; font-weight: 800; color: #ea580c; }
+  .record.hidden { display: none; }
+  button {
+    font: inherit; font-size: 22px; font-weight: 800; color: #fff;
+    background: #f97316; border: 0; border-radius: 999px;
+    padding: 14px 46px; margin-top: 6px; min-height: 56px;
+    box-shadow: 0 5px 0 #c2410c; cursor: pointer; touch-action: manipulation;
+  }
+  button:active { transform: translateY(3px); box-shadow: 0 2px 0 #c2410c; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="game"></canvas>
+
+  <div id="hud" class="hidden">
+    <div class="hud-row">
+      <div class="pill" id="hud-dist">0 מ׳</div>
+      <div class="pill"><span class="coin-dot"></span><span id="hud-coins">0</span></div>
+    </div>
+    <div id="gauge"><span class="label">חנקן</span><div class="track"><div id="gauge-fill"></div></div></div>
+  </div>
+  <div id="toast"></div>
+
+  <div id="start" class="overlay">
+    <div class="card">
+      <h1>שליח החנקן</h1>
+      <p>רצים בשדה התעופה עם מכל חנקן. ממלאים אותו בתחנות הזוהרות לפני שהוא מתרוקן.</p>
+      <p class="hint">החלקה לצדדים: החלפת מסלול<br>החלקה למעלה: קפיצה<br>החלקה למטה: גלישה מתחת</p>
+      <div class="best" id="start-best"></div>
+      <div id="err" style="display:none;direction:ltr;text-align:left;white-space:pre-wrap;word-break:break-word;font-size:11px;line-height:1.35;color:#b91c1c;background:#fee2e2;border-radius:10px;padding:8px 10px;width:100%"></div>
+      <button id="btn-start" type="button">התחל</button>
+    </div>
+  </div>
+
+  <div id="over" class="overlay hidden">
+    <div class="card">
+      <h2 id="over-title">נגמר החנקן</h2>
+      <div class="big" id="over-score">0 מ׳</div>
+      <div class="coins" id="over-coins"></div>
+      <div class="record hidden" id="over-record">שיא חדש!</div>
+      <div class="best" id="over-best"></div>
+      <button id="btn-again" type="button">שחק שוב</button>
+    </div>
+  </div>
+</div>
+<script>
+// Safety net: if the game fails to start (for example a graphics feature the phone lacks), show why
+// on the start card and retry once in a lighter mode, instead of leaving a dead button.
+(function () {
+  window.__ready = false;
+  var shown = [];
+  function show(msg) {
+    shown.push(msg);
+    var el = document.getElementById('err');
+    if (el) { el.style.display = 'block'; el.textContent = shown.slice(0, 3).join('\n'); }
+  }
+  var busy = false;
+  function fallback(msg) {
+    if (window.__ready || busy || /fx=0/.test(location.search)) return;
+    var n = 0;
+    try {
+      n = parseInt(sessionStorage.getItem('fbn') || '0', 10);
+      if (n >= 2) return;
+      sessionStorage.setItem('fbn', String(n + 1));
+      sessionStorage.setItem('lasterr', msg);
+    } catch (x) { return; }
+    busy = true;
+    if (n === 0) {
+      // First failure: usually an old cached copy of a file. Clear the offline cache and reload.
+      var jobs = [];
+      try { if (navigator.serviceWorker) jobs.push(navigator.serviceWorker.getRegistrations().then(function (rs) { return Promise.all(rs.map(function (r) { return r.unregister(); })); })); } catch (x) { /* ignore */ }
+      try { if (window.caches) jobs.push(caches.keys().then(function (ks) { return Promise.all(ks.map(function (k) { return caches.delete(k); })); })); } catch (x) { /* ignore */ }
+      Promise.all(jobs).catch(function () {}).then(function () { location.reload(); });
+    } else {
+      // Second failure: retry in the light graphics mode.
+      location.replace(location.pathname + '?fx=0&refl=0&q=5');
+    }
+  }
+  window.addEventListener('error', function (e) {
+    var m = (e.message || 'error') + (e.filename ? ' [' + e.filename.split('/').pop() + ':' + e.lineno + ']' : '');
+    show(m); fallback(m);
+  });
+  window.addEventListener('unhandledrejection', function (e) {
+    var m = 'promise: ' + ((e.reason && e.reason.message) || e.reason);
+    show(m); fallback(m);
+  });
+  document.addEventListener('DOMContentLoaded', function () {
+    try {
+      var last = sessionStorage.getItem('lasterr');
+      if (last) show('ניסיון תיקון אוטומטי אחרי שגיאה: ' + last);
+    } catch (x) { /* ignore */ }
+    document.getElementById('btn-start').addEventListener('click', function () {
+      if (!window.__ready) show('המשחק עדיין לא נטען');
+    });
+  });
+})();
+</script>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
